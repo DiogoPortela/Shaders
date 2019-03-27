@@ -1,4 +1,4 @@
-﻿Shader "Shaders/tesselation"
+﻿Shader "Shaders/tesselation1"
 {
 	Properties
 	{
@@ -132,8 +132,8 @@
             				normalize(i[1].bitangent) * barycentric.y + 
             				normalize(i[2].bitangent) * barycentric.z;
 
-				float lenOffset = length(i[0].pos) - length(p);
-				p = mul(unity_ObjectToWorld, float4(p,1)) + normalize(n) * lenOffset; 
+				//float lenOffset = length(i[0].pos) - length(p);
+				p = mul(unity_ObjectToWorld, float4(p,1));// + normalize(n) * lenOffset; 
 
 				float4 displacement = tex2Dlod(_heightMap, float4(uv, 0.0, 0.0));
 				p = p + normalize(n) * displacement.x * _h;

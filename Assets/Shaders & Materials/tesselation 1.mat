@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: tesselation
-  m_Shader: {fileID: 4800000, guid: eacfebe93b9d4614fa3ff5ad3a2a8b02, type: 3}
+  m_Name: tesselation 1
+  m_Shader: {fileID: 4800000, guid: e82fdc145129daa4a848b89932512f58, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
