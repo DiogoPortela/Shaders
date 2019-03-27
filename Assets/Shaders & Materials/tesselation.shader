@@ -161,12 +161,13 @@
 
 				float specularIntensity = 0;
 				float diffuseIntensity = max(0, dot(worldNormal, lightDirection));
+				float diffuseArea = max(0, dot(normal, lightDirection));
 
 				if(diffuseIntensity > 0){
 					specularIntensity = pow(max(0, dot(reflection, lookDirection)), _specEx);
 				}
 
-				return tex2D( _MainTex, i.uv) * diffuseIntensity + _spec * specularIntensity * tex2D(_specMap, i.uv);
+				return tex2D( _MainTex, i.uv) * diffuseIntensity * diffuseArea + _spec * specularIntensity * tex2D(_specMap, i.uv);
             }
 
 			ENDCG
