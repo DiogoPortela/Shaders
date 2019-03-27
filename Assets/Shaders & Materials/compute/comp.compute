@@ -1,0 +1,24 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSSource
+#pragma kernel CSGO
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWTexture2D<float4> Result;
+float xSize, ySize;
+
+[numthreads(8,8,1)]
+void CSSource (uint3 id : SV_DispatchThreadID)
+{
+	// TODO: insert actual code here!
+
+	Result[id.xy] = float4(id.x / xSize, id.y / ySize, 0, 1);
+}
+
+[numthreads(8,8,1)]
+void CSGO (uint3 id : SV_DispatchThreadID)
+{
+	// TODO: insert actual code here!
+
+	Result[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
+}

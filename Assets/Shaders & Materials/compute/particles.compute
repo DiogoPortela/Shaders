@@ -1,0 +1,29 @@
+﻿#pragma kernel CSMain
+
+RWTexture2D<float4> Result;
+
+ struct particle
+    {
+        float2 pos;
+        float2 dir;
+        float3 color;
+        float alive;
+    };
+
+RWStructuredBuffer<particle> particleBuffer;
+float time;
+float deltaTime;
+
+[numthreads(10,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+	// TODO: insert actual code here!
+	particle p = particleBuffer[id.x];
+
+	p.dir.y -= deltaTime;
+	p.pos += p.dir * deltaTime;
+
+	Result[p.pos] = float4(p.color, 1.0);
+	particleBuffer[id.x] = p;
+
+}
