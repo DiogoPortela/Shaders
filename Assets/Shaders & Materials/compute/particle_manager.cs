@@ -78,4 +78,10 @@ public class particle_manager : MonoBehaviour
             DispatchShrug();
         }
     }
+
+    void OnDestroy()
+	{
+		renderTexture.Release();
+		particleBuffer.Release();
+	}
 }

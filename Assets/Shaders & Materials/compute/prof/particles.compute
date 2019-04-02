@@ -1,0 +1,40 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+#pragma kernel CSClean
+
+
+RWTexture2D<float4> Result;
+
+struct particle
+{
+	float2 pos;
+	float2 dir;
+	float3 color;
+	float alive;
+};
+RWStructuredBuffer<particle> particleBuffer;
+float time, deltatime;
+
+[numthreads(8,8,1)]
+void CSClean (uint3 id : SV_DispatchThreadID)
+{
+	Result[id.xy] = float4(0,0,0,0);
+}
+
+[numthreads(100,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+	particle p = particleBuffer[id.x];
+
+	//update dir
+	p.dir.y -= deltatime;
+
+	//update position
+	p.pos += p.dir * deltatime;
+
+	//codigo evitar sair da textura
+
+	//render e save da particula
+	Result[p.pos] = float4(p.color, 1.0);
+	particleBuffer[id.x] = p;
+}
