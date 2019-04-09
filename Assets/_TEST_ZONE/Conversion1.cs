@@ -11,21 +11,30 @@ public class Conversion1 : MonoBehaviour
 
     private Material material;
     private int computeIndex;
+    private int clearIndex;
     private void Start() {
         material = GetComponent<Renderer>().material;
 
-        alphaBlendTexture = new RenderTexture(600, 1320, 24);
+        alphaBlendTexture = new RenderTexture(256, 256, 24);    //1320
         alphaBlendTexture.enableRandomWrite = true;
         alphaBlendTexture.Create();
 
         computeIndex = computeShader.FindKernel("CSMain");
+        clearIndex = computeShader.FindKernel("CSClean");
+
         computeShader.SetTexture(computeIndex, "Result", alphaBlendTexture);
+        computeShader.SetTexture(clearIndex, "Result", alphaBlendTexture);
+
+        computeShader.Dispatch(clearIndex, 256 / 8, 256 / 8, 1);
     }
 
-    private void OnRenderImage(RenderTexture src, RenderTexture dest) {
-        material.SetTexture("Alpha Texture", alphaBlendTexture);
-        computeShader.Dispatch(computeIndex, 600 / 8, 1320 / 8, 1);
+    private void Update() {
+        computeShader.SetFloat("value", value);
+        computeShader.SetFloat("deltaTime", Time.deltaTime);
+        computeShader.Dispatch(computeIndex, 256 / 8, 256 / 8, 1);
+        material.SetTexture("_AlphaText", alphaBlendTexture);
 
-        Graphics.Blit(src, dest);
+        if(Input.GetKeyDown(KeyCode.Alpha1))
+            computeShader.Dispatch(clearIndex, 256 / 8, 256 / 8, 1);
     }
 }
