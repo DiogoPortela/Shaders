@@ -733,7 +733,7 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 13
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!21 &964472871
+--- !u!21 &846360045
 Material:
   serializedVersion: 6
   m_ObjectHideFlags: 0
@@ -1371,7 +1371,7 @@ MeshRenderer:
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 964472871}
+  - {fileID: 846360045}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
