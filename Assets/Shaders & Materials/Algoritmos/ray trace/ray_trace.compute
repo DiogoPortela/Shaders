@@ -1,0 +1,111 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWTexture2D<float4> Result;
+Texture2D <float4> skybox;
+SamplerState sampler_skybox;
+
+float4x4 _CameraToWorld;
+float4x4 _CameraInverseProjection;
+float4 light;
+
+struct sphere{
+    float radius;
+    float3 center;
+    float3 color;
+};
+StructuredBuffer<sphere> spheres;
+
+//ray cast
+    struct ray{
+        float3 dir;
+        float3 origin;
+        float3 energy;
+    };
+
+    struct rayHit{
+        float3 pos;
+        float distance;
+        float3 normal;
+        float3 color;
+    };
+
+    ray createRay(float3 ori, float3 dir){
+        ray r;
+        r.origin = ori;
+        r.dir = dir;
+        r.energy = float3(1,1,1);
+        return r;
+    }
+
+    rayHit createRayHit(){
+        rayHit rh;
+        rh.pos = float3(0,0,0);
+        rh.distance = 1000000;
+        rh.normal = float3(0,0,0);
+        rh.color = float3(0,0,0);
+        return rh;
+    }
+
+    ray createCameraRay(float2 uv){
+        ray r;
+        float3 cameraPos = mul(_CameraToWorld, float4(0,0,0,1)).xyz;
+        
+        float3 direction = mul(_CameraInverseProjection, float4(uv, 0, 1)).xyz;
+        direction = normalize(mul(_CameraToWorld, float4(direction, 0)).xyz);
+
+        return createRay(cameraPos, direction);
+    }
+//intersection stuff
+
+    void intersectSphere(ray r, int sphereIndex, inout rayHit rh){
+        sphere s = spheres[sphereIndex];
+        float3 d = r.origin - s.center;
+        float p1 = -dot(r.dir , d);
+        float p2sqr = p1 * p1 - dot(d,d) + s.radius * s.radius;
+
+        if(p2sqr < 0) return;
+
+        float p2 = sqrt(p2sqr);
+        float t;
+        
+        if((p1 - p2) > 0)
+        {
+            t = p1-p2;
+        }
+        else
+        {
+            t = p1+p2;
+        }
+        if(t > 0 && t < rh.distance)
+        {
+            rh.distance = t;
+            rh.pos = r.origin + t * r.dir;
+            rh.normal = normalize(rh.pos - s.center);
+            rh.color = s.color;
+        }
+    }
+
+//trace
+
+//shadow
+
+//main
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    uint w, h;
+    Result.GetDimensions(w,h);
+    //generate ray
+    float2 uv = id.xy / float2(w, h) * 2.0f - 1.0f;
+    ray r = createCameraRay(uv);
+
+    //trace + shadows
+    float3 color = float3(0,0,0);
+
+    //return
+    Result[id.xy] = float4(color, 1);
+}

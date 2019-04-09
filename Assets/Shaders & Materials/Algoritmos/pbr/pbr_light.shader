@@ -8,6 +8,7 @@ Shader "Shaders/pbr_light"
         _SpecColor("Cor Especular", Color) = (1,1,1,1)
         _Smoothness("Smoothness", Range(0,1)) = 0
         _Metallic("Metallic", Range(0,1)) = 0
+        _IOR("Index of Refraction", Range(0, 2)) = 1
     }
     SubShader
     {
@@ -21,7 +22,7 @@ Shader "Shaders/pbr_light"
             #include "UnityCG.cginc"
 
             uniform float4 _DifColor, _SpecColor;
-            uniform float _Smoothness, _Metallic;
+            uniform float _Smoothness, _Metallic, _IOR;
 
             struct vert_in{
                 float4 pos : POSITION;
@@ -43,6 +44,30 @@ Shader "Shaders/pbr_light"
                 float tanr = (1-nn) /(nn);
                 return ((1.0 / 3.1415) * sqrt(roughness / (nn * rr + tanr)));
             }
+            float blinn_ndf(float NdotH, float shininess)
+            {
+                float specularGloss = max(1, shininess * 40);
+                float res = pow(NdotH, specularGloss) * shininess * ((2+shininess) / (2*3.1415));
+                return res;
+            }
+
+            float gaussian_ndf(float NdotH, float roughness)
+            {
+                float rr = roughness * roughness;
+                float theta = acos(NdotH);
+                return exp(-theta * theta / rr);
+            }
+
+            float wardA_ndf(float anisotropy, float smoothness, float NdotL, float NdotV, float NdotH, float HX, float HY)
+            {
+                float aspect = sqrt(1.0 - anisotropy * 0.9);
+                float x = max(0.001, sqrt(1.0 - smoothness) / aspect) * (smoothness * smoothness);
+                float y = max(0.001, sqrt(1.0 - smoothness) * aspect) * (smoothness * smoothness);
+                HX /= x;
+                HY /= y;
+
+                return sqrt(max(0.001, NdotL / NdotV)) * exp(-2.0 * (HX*HX + HY * HY) / (1 + NdotH));
+            }
             //gs
             float walter_gsf(float NdotL, float NdotV, float roughness){
                 float a = roughness * roughness;
@@ -52,6 +77,9 @@ Shader "Shaders/pbr_light"
                 float sv = 2.0 / (1.0 + sqrt(1.0 + a * (1.0 - nv)/(nv)));
 
                 return(sv * sl);
+            }
+            float neumann_gsf(float NdotL, float NdotV){
+                return (NdotL * NdotL) / max(NdotL, NdotV);
             }
             //ff
             float mix_f(float i, float j, float x){
@@ -110,12 +138,16 @@ Shader "Shaders/pbr_light"
                 float metallic = _Metallic;
                 float roughness = 1.0 - (smoothness * smoothness);
                 roughness *= roughness;
-                float ior = 1;
+                float ior = _IOR;
 
                 //Normal Distribution Function
-                float ndf = ggx_ndf(roughness, NdotH);
+                //float ndf = ggx_ndf(roughness, NdotH);
+                float ndf = wardA_ndf(1, smoothness, NdotL, NdotV, NdotH, dot(H, i.tangent), dot(H, i.bitangent));
+                
                 //Geometry Shadowing
-                float gs = walter_gsf(NdotL, NdotV, roughness);
+                //float gs = walter_gsf(NdotL, NdotV, roughness);
+                float gs =  neumann_gsf(NdotL, NdotV);
+                
                 //Fresnel Function
                 float ffd = f0(NdotL, NdotV, LdotH, roughness);
                 float ffs = schlick_ff(ior, LdotH);
