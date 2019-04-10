@@ -5,7 +5,6 @@ Shader "TEST/Conversion1"
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
-        _SecondTex ("Faded Texture", 2D) = "white" {}
         _AlphaText("Alpha Texture", 2D) = "white" {}
     }
     SubShader
@@ -39,9 +38,9 @@ Shader "TEST/Conversion1"
                 return o;
             }
             float4 frag(fragment_in i) : COLOR {
-                float alphaValue = tex2D(_AlphaText, i.uv);
-                //float4 result = tex2D(_MainTex, i.uv) * alphaValue + tex2D(_SecondTex, i.uv) * (1 - alphaValue);
-                return float4(tex2D(_MainTex, i.uv).xyz, alphaValue);
+                float4 alphaValue = tex2D(_AlphaText, i.uv);
+                float3 textureValue = tex2D(_MainTex, i.uv);
+                return alphaValue;//float4(textureValue, alphaValue);
             }
             ENDCG
         }

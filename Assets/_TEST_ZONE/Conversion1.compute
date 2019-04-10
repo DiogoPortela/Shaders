@@ -18,13 +18,11 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 {
         if(DetectPoints(id.xy))
         {     
-            //Result[id.xy] = float4(Result[id.xy].x - 0.01f, 1, 1, 1);
-            //float x = Result[id.xy].x;
-            Result[id.xy] = float4(lerp(1, 0, 1), 1, 1, 1);
-            //float4 pixel = float4(0.0f, Result[id.xy].g, Result[id.xy].b, Result[id.xy].a);//float4(0.9, 1, 1, 1);
-            //Result[id.xy] = pixel;
-            //Result[id.xy] = Result[id.xy] - 0.1f * deltaTime;
-            //Result[id.xy] = value;
+            //Result[id.xy] = float4(lerp(1, 0, 1), 1, 1, 1);
+            Result[id.xy] = float4(0, 1, 1, 1);
+        }
+        else{
+            Result[id.xy] = float4(1, 0, 1, 1);
         }
 }
 

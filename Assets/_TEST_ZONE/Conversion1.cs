@@ -4,19 +4,19 @@ using UnityEngine;
 
 public class Conversion1 : MonoBehaviour
 {
-    private const int heigth = 256, width = 256;
-
+    public int heigth = 256, width = 256;
+    public int minHolesCount;
+    public int maxHolesCount;
+    [Range(0, 5)] public float value;
     public ComputeShader computeShader;
-    [Range(0, 1)]
-    public float value;
     public RenderTexture alphaBlendTexture;
 
     private Material material;
     private int computeIndex;
     private int clearIndex;
-
     private ComputeBuffer computeBuffer;
     private List<Vector4> points;
+
     private void Start()
     {
         material = GetComponent<Renderer>().material;
@@ -36,13 +36,14 @@ public class Conversion1 : MonoBehaviour
 
     private void Restart()
     {
+        computeBuffer?.Release();
         points = new List<Vector4>();
-        int randomValue = Random.Range(10, 20);
+        int randomValue = Random.Range(minHolesCount, maxHolesCount);
         for(int i = 0; i < randomValue; i++){
-            points.Add(new Vector4(Random.Range(width/4, width/2), Random.Range(0, heigth/2), 0, Random.Range(20, 100)));
-            points.Add(new Vector4(Random.Range(width/4, width/2), Random.Range(heigth/2, heigth), 0, Random.Range(20, 100)));
-            points.Add(new Vector4(Random.Range(0, width/4), Random.Range(0, heigth/2), 0, Random.Range(20, 100)));
-            points.Add(new Vector4(Random.Range(0, width/4), Random.Range(heigth/2, heigth), 0, Random.Range(20, 100)));
+            points.Add(new Vector4(Random.Range(width/4, width/2), Random.Range(0, heigth/2), 0,        Random.Range(20, 100)));
+            points.Add(new Vector4(Random.Range(width/4, width/2), Random.Range(heigth/2, heigth), 0,   Random.Range(20, 100)));
+            points.Add(new Vector4(Random.Range(0, width/4), Random.Range(0, heigth/2), 0,              Random.Range(20, 100)));
+            points.Add(new Vector4(Random.Range(0, width/4), Random.Range(heigth/2, heigth), 0,         Random.Range(20, 100)));
         }
         computeBuffer = new ComputeBuffer(randomValue * 4, sizeof(float) * 4);
         computeBuffer.SetData(points);
@@ -54,17 +55,21 @@ public class Conversion1 : MonoBehaviour
 
     private void Update()
     {
+       DecreaseOpacity();
+
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+            Restart();
+    }
+
+    private void DecreaseOpacity(){
         for (int i = 0; i < points.Count; i++)
         {
-            points[i] += new Vector4(0, 0, points[i].w * Time.deltaTime, 0);
+            points[i] += new Vector4(0, 0, points[i].w * value * Time.deltaTime, 0);
         }
         computeBuffer.SetData(points);
         computeShader.SetBuffer(computeIndex, "data", computeBuffer);
 
         computeShader.Dispatch(computeIndex, width / 8, heigth / 8, 1);
         material.SetTexture("_AlphaText", alphaBlendTexture);
-
-        if (Input.GetKeyDown(KeyCode.Alpha1))
-            Restart();
     }
 }
