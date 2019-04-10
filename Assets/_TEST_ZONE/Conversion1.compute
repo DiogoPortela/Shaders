@@ -4,12 +4,10 @@
 RWTexture2D<float4> Result;
 RWStructuredBuffer<float4> data;
 int count;
-float value;
-float deltaTime;
 
-bool DetectPoints(float4 pixel){
+bool DetectPoints(float2 pixel){
     for(int i = 0; i < count; i ++){
-        if(length(pixel.xyz - data[i].xyz) < data[i].z)
+        if(length(pixel.xy - data[i].xy) < data[i].z)
             return true; 
     }
     return false;
@@ -18,20 +16,16 @@ bool DetectPoints(float4 pixel){
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    if(DetectPoints(Result[id.xy]))
-    {
-        float nearbyForce = 0;
-        for(int i = -1; i < 1; i++)
-        {
-            for(int j = -1; j < 1; j++)
-            {
-                if(id.x + i > 0 && id.y + j > 0 && id.x + i < 256 && id.y + j < 256)
-                nearbyForce += Result[float2(id.x + i, id.y + j)].x;
-            }
+        if(DetectPoints(id.xy))
+        {     
+            //Result[id.xy] = float4(Result[id.xy].x - 0.01f, 1, 1, 1);
+            //float x = Result[id.xy].x;
+            Result[id.xy] = float4(lerp(1, 0, 1), 1, 1, 1);
+            //float4 pixel = float4(0.0f, Result[id.xy].g, Result[id.xy].b, Result[id.xy].a);//float4(0.9, 1, 1, 1);
+            //Result[id.xy] = pixel;
+            //Result[id.xy] = Result[id.xy] - 0.1f * deltaTime;
+            //Result[id.xy] = value;
         }
-        nearbyForce = 9 - nearbyForce;
-        Result[id.xy] -= nearbyForce * value * deltaTime;
-    }
 }
 
 [numthreads(8,8,1)]

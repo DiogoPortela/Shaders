@@ -16,12 +16,12 @@ public class Conversion1 : MonoBehaviour
     private int clearIndex;
 
     private ComputeBuffer computeBuffer;
-    private List<Vector3> points;
+    private List<Vector4> points;
     private void Start()
     {
         material = GetComponent<Renderer>().material;
 
-        alphaBlendTexture = new RenderTexture(width, heigth, 24);    //1320
+        alphaBlendTexture = new RenderTexture(width, heigth, 24);
         alphaBlendTexture.enableRandomWrite = true;
         alphaBlendTexture.Create();
 
@@ -31,19 +31,24 @@ public class Conversion1 : MonoBehaviour
         computeShader.SetTexture(computeIndex, "Result", alphaBlendTexture);
         computeShader.SetTexture(clearIndex, "Result", alphaBlendTexture);
 
-        Restart();
-
-        computeBuffer = new ComputeBuffer(1, sizeof(float) * 3);
-        computeBuffer.SetData(points);
-        computeShader.SetBuffer(computeIndex, "data", computeBuffer);
+        Restart();        
     }
 
     private void Restart()
     {
-        points = new List<Vector3>();
-        points.Add(new Vector3(Random.Range(0, width), Random.Range(0, heigth), 1));
-        computeShader.SetInt("count", 1);
+        points = new List<Vector4>();
+        int randomValue = Random.Range(10, 20);
+        for(int i = 0; i < randomValue; i++){
+            points.Add(new Vector4(Random.Range(width/4, width/2), Random.Range(0, heigth/2), 0, Random.Range(20, 100)));
+            points.Add(new Vector4(Random.Range(width/4, width/2), Random.Range(heigth/2, heigth), 0, Random.Range(20, 100)));
+            points.Add(new Vector4(Random.Range(0, width/4), Random.Range(0, heigth/2), 0, Random.Range(20, 100)));
+            points.Add(new Vector4(Random.Range(0, width/4), Random.Range(heigth/2, heigth), 0, Random.Range(20, 100)));
+        }
+        computeBuffer = new ComputeBuffer(randomValue * 4, sizeof(float) * 4);
+        computeBuffer.SetData(points);
+        computeShader.SetBuffer(computeIndex, "data", computeBuffer);
         
+        computeShader.SetInt("count", randomValue * 4);
         computeShader.Dispatch(clearIndex, width / 8, heigth / 8, 1);
     }
 
@@ -51,12 +56,11 @@ public class Conversion1 : MonoBehaviour
     {
         for (int i = 0; i < points.Count; i++)
         {
-            Vector3 v = points[i];
-            v = new Vector3(v.x, v.y, v.z + Time.deltaTime);
+            points[i] += new Vector4(0, 0, points[i].w * Time.deltaTime, 0);
         }
+        computeBuffer.SetData(points);
+        computeShader.SetBuffer(computeIndex, "data", computeBuffer);
 
-        computeShader.SetFloat("value", value);
-        computeShader.SetFloat("deltaTime", Time.deltaTime);
         computeShader.Dispatch(computeIndex, width / 8, heigth / 8, 1);
         material.SetTexture("_AlphaText", alphaBlendTexture);
 

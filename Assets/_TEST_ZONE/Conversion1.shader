@@ -10,6 +10,8 @@ Shader "TEST/Conversion1"
     }
     SubShader
     {
+        Tags {"Queue"="Transparent" "RenderType"="Transparent" }
+        Blend SrcAlpha OneMinusSrcAlpha
         Pass
         {
             CGPROGRAM
@@ -38,8 +40,8 @@ Shader "TEST/Conversion1"
             }
             float4 frag(fragment_in i) : COLOR {
                 float alphaValue = tex2D(_AlphaText, i.uv);
-                float4 result = tex2D(_MainTex, i.uv) * alphaValue + tex2D(_SecondTex, i.uv) * (1 - alphaValue);
-                return result;
+                //float4 result = tex2D(_MainTex, i.uv) * alphaValue + tex2D(_SecondTex, i.uv) * (1 - alphaValue);
+                return float4(tex2D(_MainTex, i.uv).xyz, alphaValue);
             }
             ENDCG
         }
