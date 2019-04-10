@@ -4,12 +4,14 @@
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
 RWTexture2D<float4> Result;
-Texture2D <float4> skybox;
+Texture2D<float4> skybox;
 SamplerState sampler_skybox;
 
 float4x4 _CameraToWorld;
 float4x4 _CameraInverseProjection;
 float4 light;
+
+static const float PI = 3.1415f;
 
 struct sphere{
     float radius;
@@ -68,7 +70,7 @@ StructuredBuffer<sphere> spheres;
 
         if(p2sqr < 0) return;
 
-        float p2 = sqrt(p2sqr);
+        float p2 = sqrt(p2sqr); //Distancia do centro da esfera ao raio lançado. EM LINHA PREPENDICULAR
         float t;
         
         if((p1 - p2) > 0)
@@ -87,10 +89,63 @@ StructuredBuffer<sphere> spheres;
             rh.color = s.color;
         }
     }
-
+    void intersectPlane(ray r, inout rayHit rh){
+        float t = -r.origin.y / r.dir.y;
+        if(t > 0 && t < rh.distance)
+        {
+            rh.distance = t;
+            rh.pos = r.origin + t * r.dir;
+            rh.normal = float3(0, 1, 0);
+            rh.color = float3(0.8f, 0.8f, 0.8f);
+        }
+    }
 //trace
 
+rayHit Trace(ray r){
+    rayHit rh = createRayHit();
+
+    //tests intersections
+    uint numSpheres, stride;
+    spheres.GetDimensions(numSpheres, stride);
+    for(uint i = 0; i < numSpheres; i++){
+        intersectSphere(r, i, rh);
+    }
+    intersectPlane(r, rh);
+
+    return rh;
+}
+
 //shadow
+
+float3 Shadow(ray r, rayHit rh){
+    if(rh.distance < 1000000)
+    {
+        //Calculate reflection or refrection of the ray
+        r.origin = rh.pos + rh.normal * 0.001f;
+        r.dir = reflect(r.dir, rh.normal);
+        r.energy = float3(r.energy.x * rh.color.x, r.energy.y * rh.color.y, r.energy.z * rh.color.z);
+
+        //Check if its in shadow
+        bool shade = false;
+        ray shadowRay = createRay(rh.pos + rh.normal * 0.001f, -light.xyz);
+        rayHit shadowHit = Trace(shadowRay);
+        if(shadowHit.distance != 1000000){
+            return float3(0,0,0);
+        }
+        else {
+            return saturate(dot(rh.normal, light.xyz)) * light.w * rh.color;
+        }
+    }
+    else
+    {
+        //ray disappears
+        r.energy = float3(0,0,0);
+        float theta = acos(r.dir.y) / - PI;
+        float phi = atan2(r.dir.x, -r.dir.z) / -PI * 0.5f;
+
+        return skybox.SampleLevel(sampler_skybox, float2(phi, theta), 0).xyz;
+    }
+}
 
 //main
 
@@ -105,6 +160,11 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
     //trace + shadows
     float3 color = float3(0,0,0);
+
+    for(int i = 0; i < 8; i++){
+        rayHit rh = Trace(r);
+        color += r.energy * Shadow(r, rh);
+    }
 
     //return
     Result[id.xy] = float4(color, 1);

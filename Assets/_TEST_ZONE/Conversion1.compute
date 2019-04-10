@@ -2,23 +2,36 @@
 #pragma kernel CSClean
 
 RWTexture2D<float4> Result;
+RWStructuredBuffer<float4> data;
+int count;
 float value;
 float deltaTime;
+
+bool DetectPoints(float4 pixel){
+    for(int i = 0; i < count; i ++){
+        if(length(pixel.xyz - data[i].xyz) < data[i].z)
+            return true; 
+    }
+    return false;
+}
 
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    float nearbyForce = 0;
-    for(int i = -1; i < 1; i++)
+    if(DetectPoints(Result[id.xy]))
     {
-        for(int j = -1; j < 1; j++)
+        float nearbyForce = 0;
+        for(int i = -1; i < 1; i++)
         {
-            if(id.x + i > 0 && id.y + j > 0 && id.x + i < 256 && id.y + j < 256)
-            nearbyForce += Result[float2(id.x + i, id.y + j)].x;
+            for(int j = -1; j < 1; j++)
+            {
+                if(id.x + i > 0 && id.y + j > 0 && id.x + i < 256 && id.y + j < 256)
+                nearbyForce += Result[float2(id.x + i, id.y + j)].x;
+            }
         }
+        nearbyForce = 9 - nearbyForce;
+        Result[id.xy] -= nearbyForce * value * deltaTime;
     }
-    nearbyForce = 9 - nearbyForce;
-    Result[id.xy] -= nearbyForce * value * deltaTime;
 }
 
 [numthreads(8,8,1)]
