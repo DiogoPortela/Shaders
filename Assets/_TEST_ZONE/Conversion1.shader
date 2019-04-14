@@ -18,7 +18,7 @@ Shader "TEST/Conversion1"
             #pragma fragment frag
            
             #include "UnityCG.cginc"
-            uniform sampler2D _MainTex, _SecondTex, _AlphaText;
+            uniform sampler2D _MainTex, _AlphaText;
 
            struct vertex_in{
                float4 position : POSITION;
@@ -38,9 +38,9 @@ Shader "TEST/Conversion1"
                 return o;
             }
             float4 frag(fragment_in i) : COLOR {
-                float4 alphaValue = tex2D(_AlphaText, i.uv);
-                float3 textureValue = tex2D(_MainTex, i.uv);
-                return alphaValue;//float4(textureValue, alphaValue);
+                float alphaValue = tex2D(_AlphaText, i.uv);
+                float4 textureValue = tex2D(_MainTex, i.uv);
+                return float4(textureValue.xyz, alphaValue);
             }
             ENDCG
         }

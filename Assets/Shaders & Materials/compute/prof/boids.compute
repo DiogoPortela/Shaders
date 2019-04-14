@@ -1,0 +1,116 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+
+int resolution;
+int numBoids;
+float deltaMod;	
+float weight;	
+float repelWeight;	
+float alignWeight;
+float cohesionWeight;	
+float maxSpeed;
+float repelDist;
+float alignDist;
+float cohesionDist;
+float maxForce;
+float deltaTime;
+
+struct boidData
+{
+	float2 pos;
+	float2 dir;		
+	float4 color; // color.rgb + alive
+};
+
+RWTexture2D<float4> Result;
+
+StructuredBuffer<boidData> boidBuffer;
+ConsumeStructuredBuffer<uint> idsBuff;
+AppendStructuredBuffer<boidData> boidBuffer2;
+
+float2 procVec(float2 v, float l)
+{
+	float al = length(v);
+	if(al > l)
+	{
+		v = v * l / al;
+	}
+	return v;
+}
+
+[numthreads(10,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+	uint bid = idsBuff.Consume();
+	boidData b = boidBuffer[bid];
+
+	float3 length_sum = float3(0,0,0);
+	float3 align_sum = float3(0,0,0);
+	float3 cohesion_sum = float3(0,0,0);
+	float invWeight = 1.0 / weight;
+
+	//compute boid effects
+	for(int i=numBoids-1; i >= 0; i--)
+	{
+		if((int)bid == i)
+		{
+			continue;
+		}
+		float2 length_diff = b.pos - boidBuffer[i].pos;
+		float len = length(length_diff);
+		//repel
+		if(len < repelDist)
+		{
+			length_sum.xy = length_sum.xy + (length_diff * (repelDist / (len*len)));
+			length_sum.z += 1.0f;
+		}
+		//align
+		if(len < alignDist)
+		{
+			align_sum.xy = align_sum.xy + boidBuffer[i].dir;
+			align_sum.z += 1.0f;
+		}
+		//cohesion 
+		if(len < cohesionDist)
+		{
+			cohesion_sum.xy = cohesion_sum.xy + boidBuffer[i].pos;
+			cohesion_sum.z += 1.0f;
+		}
+	}
+	//repel
+	if(length_sum.z > 0)
+	{
+		length_sum.xy = (length_sum.xy / length(length_sum.xy) * maxSpeed) - b.dir;
+		length_sum.xy = procVec(length_sum.xy, maxForce);
+	}
+	//align
+	if(align_sum.z > 0)
+	{
+		align_sum.xy = (align_sum.xy / length(align_sum.xy) * maxSpeed) - b.dir;
+		align_sum.xy = procVec(align_sum.xy, maxForce);
+	}
+	//cohesion
+	if(cohesion_sum.z > 0)
+	{
+		cohesion_sum.xy = cohesion_sum.xy / cohesion_sum.z;
+		cohesion_sum.xy = cohesion_sum.xy - b.pos;
+		cohesion_sum.xy = (cohesion_sum.xy / length(cohesion_sum.xy) * maxSpeed) - b.dir;
+		cohesion_sum.xy = procVec(cohesion_sum.xy, maxForce);
+	}
+
+	//definir comportamento do boid
+	float2 ac = length_sum.xy * repelWeight + 
+				align_sum.xy * alignWeight + 
+				cohesion_sum.xy * cohesionWeight;
+	ac = procVec(ac, maxForce);
+
+	b.dir = b.dir + ac*deltaTime*invWeight;
+	b.dir = procVec(b.dir, maxSpeed);
+	b.pos = b.pos + b.dir*deltaTime;
+	//limites
+	b.pos.x = fmod(b.pos.x + resolution, resolution);	
+	b.pos.y = fmod(b.pos.y + resolution, resolution);
+
+	boidBuffer2.Append(b);
+}

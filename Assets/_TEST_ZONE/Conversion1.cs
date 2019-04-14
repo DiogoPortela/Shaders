@@ -21,15 +21,16 @@ public class Conversion1 : MonoBehaviour
     {
         material = GetComponent<Renderer>().material;
 
-        alphaBlendTexture = new RenderTexture(width, heigth, 24);
+        alphaBlendTexture = new RenderTexture(width, heigth, 0, RenderTextureFormat.RFloat);
         alphaBlendTexture.enableRandomWrite = true;
         alphaBlendTexture.Create();
 
-        computeIndex = computeShader.FindKernel("CSMain");
+        computeIndex = computeShader.FindKernel("CSFade");
         clearIndex = computeShader.FindKernel("CSClean");
 
         computeShader.SetTexture(computeIndex, "Result", alphaBlendTexture);
         computeShader.SetTexture(clearIndex, "Result", alphaBlendTexture);
+        computeShader.SetBool("isFadeIn", false);
 
         Restart();        
     }

@@ -1,9 +1,33 @@
-﻿#pragma kernel CSMain
+﻿#pragma kernel CSFade
 #pragma kernel CSClean
 
-RWTexture2D<float4> Result;
+RWTexture2D<float> Result;
 RWStructuredBuffer<float4> data;
 int count;
+bool isFadeIn;
+
+float2 DistanceFromClosestPoint(float2 pixel){
+    float2 result = float2(length(pixel.xy - data[0].xy), 0);
+    for(int i = 1; i < count; i ++){
+        float currentLenght = length(pixel.xy - data[i].xy);
+        result = (result.x > currentLenght)? float2(currentLenght, i) : result;
+    }
+    return result;
+}
+
+float ClampValuesAlphaValue(float2 Distance){
+    float offset = Distance.x - data[Distance.y].z;
+
+    if(offset < 0){
+        return 0;
+    }
+    else if(offset < 10){
+        return lerp(0,1, offset/10);
+    }
+    else{
+        return 1;
+    }
+}
 
 bool DetectPoints(float2 pixel){
     for(int i = 0; i < count; i ++){
@@ -14,17 +38,22 @@ bool DetectPoints(float2 pixel){
 }
 
 [numthreads(8,8,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+void CSFade (uint3 id : SV_DispatchThreadID)
 {
-        if(DetectPoints(id.xy))
+    float2 Distance = DistanceFromClosestPoint(id.xy);
+    Result[id.xy] = ClampValuesAlphaValue(Distance);
+        /*if(DetectPoints(id.xy))
         {     
             //Result[id.xy] = float4(lerp(1, 0, 1), 1, 1, 1);
-            Result[id.xy] = float4(0, 1, 1, 1);
+            Result[id.xy] = isFadeIn ? 1 : 0;
         }
         else{
-            Result[id.xy] = float4(1, 0, 1, 1);
-        }
+
+
+            Result[id.xy] = isFadeIn ? 0 : 1;
+        }*/
 }
+
 
 [numthreads(8,8,1)]
 void CSClean(uint3 id: SV_DISPATCHTHREADID){
