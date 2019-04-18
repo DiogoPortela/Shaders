@@ -44,12 +44,12 @@
                 float alphaValue = tex2D(_AlphaText, i.uv);
                 float4 textureValue = tex2D(_MainTex, i.uv);
                 
-                if(step(_MergeClipValue, alphaValue) == 0)
-                    alphaValue = 0;
+                clip(alphaValue < _MergeClipValue? -1 : 1);
+
                 if(alphaValue - _MergeColorValue < _MergeClipValue)
                     textureValue = _MergeColor;
                 
-                return float4(textureValue.xyz, alphaValue);
+                return float4(textureValue.xyz, 1);
             }
             ENDCG
         }
