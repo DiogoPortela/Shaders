@@ -53,6 +53,50 @@ Shader "procedural/shader1"
                             539445.43);
             }
 
+            float random2D(float2 uv){
+                uv = float2(dot(uv, float2(32423.23, 234234.212)), dot(uv, float2(534534.3423, 234234.5234)));
+                return (2.0 * frac(sin(uv) * 423423.) - 1.0);
+            }
+
+            float noise(float2 uv){
+                float2 i = floor(uv);
+                float2 f = frac(uv);
+
+                float2 comb = f * f * (3.0 - 2.0 * f);
+
+                float2 a = i + float2(0,0);
+                float2 b = i + float2(1,0);
+                float2 c = i + float2(0,1);
+                float2 d = i + float2(1,1);
+
+                return lerp(lerp(random2D(a), random2D(b), uv.x),
+                            lerp(random2D(c), random2D(d), uv.x),
+                            uv.y);
+            }
+
+            float noise3(float2 uv){
+                float2 i = floor(uv);
+                float2 f = frac(uv);
+
+                float2 comb = f * f * (3.0 - 2.0 * f);
+
+                float2 a = i + float2(0,0);
+                float2 b = i + float2(1,0);
+                float2 c = i + float2(0,1);
+                float2 d = i + float2(1,1);
+
+                return lerp(lerp(rand(a), rand(b), uv.x),
+                            lerp(rand(c), rand(d), uv.x),
+                            uv.y);
+            }
+
+            float lines(float2 uv, float b){
+                float scale = 10;
+                uv += scale;
+
+                return smoothstep(0, 0.5 * b + 0.5, (sin(uv.x * 3.1415) + b * 2.0) * 0.5);
+            }
+
             float4 frag(frag_in i) : COLOR
             {
                 float3 c = float3(0,0,0);
@@ -105,24 +149,30 @@ Shader "procedural/shader1"
 
                 //return float4(c, 1);
 
-                float r = rand(i.uv);
-                float2 ipos = floor(i.uv);
-                float2 fpos = frac(i.uv);
+                // float r = rand(i.uv);
+                // float2 ipos = floor(i.uv);
+                // float2 fpos = frac(i.uv);
 
-                float2 tile;
-                float ii = frac((r - 0.5) * 2.0);
+                // float2 tile;
+                // float ii = frac((r - 0.5) * 2.0);
 
-                if(ii > 0.75){
-                    tile = float2(1,1) - fpos;
-                }
-                else if (ii > 0.5){
-                    tile = float2(1 - fpos.x, fpos.y);
-                }
-                else if (ii > 0.25){
-                    tile = 1- float2(1 - fpos.x, fpos.y);
-                }
+                // if(ii > 0.75){
+                //     tile = float2(1,1) - fpos;
+                // }
+                // else if (ii > 0.5){
+                //     tile = float2(1 - fpos.x, fpos.y);
+                // }
+                // else if (ii > 0.25){
+                //     tile = 1- float2(1 - fpos.x, fpos.y);
+                // }
 
-                float p = plot(tile, tile.x);
+                // float p = plot(tile, tile.x);
+
+                //float n = noise2(sc * 100);
+                float2 pos = float2(sc.x * 2.0, sc.y * 1.0);
+                float p = pos.x;
+                pos = mul(roda2D(noise3(pos)), pos);
+                p = lines(pos, 0.5);
 
                 c = float3(p, p, p);
 
