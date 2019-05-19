@@ -28,6 +28,7 @@ public class Conversion2 : MonoBehaviour
         alphaBlendRenderTexture.enableRandomWrite = true;
         alphaBlendRenderTexture.Create();
         alphaBlendTexture = new Texture2D(textureSize, textureSize);
+        //SetupTextureOnGPU();
     }
     private void Update()
     {
@@ -41,11 +42,13 @@ public class Conversion2 : MonoBehaviour
             blendAction += BlendAdd;
             isVisible = false;
             GenerateTexture();
+            //GenerateTextureOnGPU();
         }
         else if (!isVisible && clipValue >= 1){
             blendAction += BlendSubtract;
             isVisible = true;
             GenerateTexture();
+            //GenerateTextureOnGPU();
         }
     }
 

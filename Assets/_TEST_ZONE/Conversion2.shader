@@ -44,11 +44,14 @@
                 float alphaValue = tex2D(_AlphaText, i.uv);
                 float4 textureValue = tex2D(_MainTex, i.uv);
                 
-                clip(alphaValue < _MergeClipValue? -1 : 1);
+                float UVFade = -i.uv.y + 1 + _MergeClipValue;
+
+                clip(alphaValue * 1/UVFade < _MergeClipValue? -1 : 1);
 
                 if(alphaValue - _MergeColorValue < _MergeClipValue)
                     textureValue = _MergeColor;
                 
+                //return UVFade;
                 return float4(textureValue.xyz, 1);
             }
             ENDCG
