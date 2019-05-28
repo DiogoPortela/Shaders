@@ -6,39 +6,29 @@ public class BlobManager : MonoBehaviour
 {
     public List<Transform> garbage;
     private List<Transform> allBlobInstances; 
-    public ComputeShader computeShader;
-    private ComputeBuffer computeBuffer;
-    public RenderTexture blobTexture;
-    private int imageIndex;
 
-    private void Start() {
-        allBlobInstances = new List<Transform>();
+    private Material material;
+
+    void Start()
+    {
         allBlobInstances = garbage;
-
-        imageIndex = computeShader.FindKernel("CSMain");
-        blobTexture = new RenderTexture(Screen.width, Screen.height, 0, RenderTextureFormat.Default);
-        blobTexture.enableRandomWrite = true;
-        computeShader.SetTexture(imageIndex, "Result", blobTexture);
-        computeShader.SetVector("size", new Vector4(Screen.width, Screen.height, 0, 0));
+        material = GetComponent<Renderer>().material;
     }
 
-    public void AddTransform(Transform t){
-        allBlobInstances.Add(t);
-    }
-    public void RemoveTransform(Transform t){
-        allBlobInstances.Remove(t);
+    void Update()
+    {
+        material.SetFloat("arrayCount", allBlobInstances.Count);
+        material.SetFloat("_meshSize", this.transform.localScale.x);
+        SendPositionsToGPU();
     }
 
-    private void Update() {
-        computeBuffer = new ComputeBuffer(allBlobInstances.Count, sizeof(float) * 3);
-        List<Vector3> allPositions = new List<Vector3>();
-        foreach (var t in allBlobInstances)
-        {
-            allPositions.Add(Camera.main.WorldToScreenPoint(t.position));
+    private void SendPositionsToGPU(){
+        ComputeBuffer blobInstanceArrayBuffer = new ComputeBuffer(allBlobInstances.Count, sizeof(float) * 2);
+        List<Vector2> blobInstanceVectors = new List<Vector2>();
+        foreach(Transform t in allBlobInstances){
+            blobInstanceVectors.Add(new Vector2(t.transform.position.x - this.transform.position.x, t.transform.position.z - this.transform.position.z));
         }
-        computeBuffer.SetData(allPositions);
-        computeShader.SetFloat("positionCount", allPositions.Count);
-        computeShader.SetBuffer(imageIndex, "positionBuffer", computeBuffer);
-        computeShader.Dispatch(imageIndex, blobTexture.width, blobTexture.height, 1);
+        blobInstanceArrayBuffer.SetData(blobInstanceVectors);
+        material.SetBuffer("blobInstanceArray", blobInstanceArrayBuffer);
     }
 }
