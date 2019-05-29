@@ -1,5 +1,7 @@
-﻿#pragma kernel CSTextureRender
-#pragma kernel CSMarchingSquares
+﻿//#pragma kernel CSTextureRender
+
+#pragma kernel CSCornerSamples
+#pragma kernel CSCellData
 
 RWTexture2D<float4> SmallTexture;
 RWStructuredBuffer<float2> blobInstanceArray;
@@ -12,7 +14,7 @@ float Metaball(float2 uv, float2 pos){
     return blobRadius / dot(uv - pos, uv - pos);
 }
 
-[numthreads(4, 4, 1)]
+/*[numthreads(4, 4, 1)]
 void CSTextureRender (uint3 id : SV_DispatchThreadID)
 {
     float2 uv = id / textureSize;
@@ -26,13 +28,69 @@ void CSTextureRender (uint3 id : SV_DispatchThreadID)
         color.x = metaballs;
 
     SmallTexture[id.xy] = color;
+}*/
+
+
+float arraySize;
+RWStructuredBuffer<float> cornersData;
+RWStructuredBuffer<int> cellsData;
+
+[numthreads(4,4,1)]
+void CSCornerSamples(uint3 id : SV_DISPATCHTHREADID)
+{
+    float2 uv = id / textureSize;
+    uv = uv * meshSize - float2(meshSize, meshSize) / 2;
+    float metaballs = 0;
+
+    for(int i = 0; i < arrayCount; i++)
+        metaballs += Metaball(uv, blobInstanceArray[i]);
+
+    cornersData[id.x + textureSize * id.y] = metaballs;
+    //SmallTexture[id.xy] = float4(metaballs, 0, 0, 1);
 }
 
 
 
-RWStructuredBuffer<float> marchingData;
 
-[numthreads(8,8,1)]
-void CSMarchingSquares(uint3 id : SV_DISPATCHTHREADID){
-    
+
+
+
+bool CheckIfPossible(int2 index){
+    if(index.x > arraySize || index.y > arraySize)
+        return false;
+    return true;
+}
+int GetCoords(int2 pos){
+    return pos.x + pos.y * arraySize;
+}
+[numthreads(4,4,1)]
+void CSCellData(uint3 id : SV_DISPATCHTHREADID)
+{
+    int value = 0;
+
+    int2 currentPos = int2(id.x, id.y);
+    if(cornersData[GetCoords(currentPos)] >= 1){
+        value += 8;
+    }
+
+    currentPos = int2(id.x + 1, id.y);
+    if(cornersData[GetCoords(currentPos)] >= 1){
+        value += 1;
+    }
+
+    currentPos = int2(id.x, id.y + 1);
+    if(cornersData[GetCoords(currentPos)] >= 1){
+        value += 4;
+    }
+
+    currentPos = int2(id.x + 1, id.y + 1);
+    if(cornersData[GetCoords(currentPos)] >= 1){
+        value += 2;
+    }
+
+    cellsData[id.x + id.y * (arraySize - 1)] = value;
+    //SmallTexture[id.xy] = float4(value / 16.0, 0, 0, 1);
+
+    currentPos = int2(id.x, id.y);
+    SmallTexture[id.xy] = float4(cornersData[GetCoords(currentPos)], 0, 0, 1);
 }
