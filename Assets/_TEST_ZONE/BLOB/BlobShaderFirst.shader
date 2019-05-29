@@ -2,13 +2,13 @@
 {
     Properties
     {
+        //_MainTex ("Texture", 2D) = "white" {}
         _blobRadius ("Blob Radius", float) = 0.1
-        _blobThickness("Thickness", float) = 1
         _meshSize("MeshSize", float) = 1
     }
     SubShader
     {
-
+        Tags { "Queue" = "Background" }
         Pass
         {
             CGPROGRAM
@@ -18,8 +18,10 @@
 
             #include "UnityCG.cginc"
 
+
+            //uniform sampler2D _MainTex;
             uniform StructuredBuffer<float2> blobInstanceArray;
-            uniform float _blobRadius, _blobThickness, arrayCount, _meshSize;
+            uniform float _blobRadius, arrayCount, _meshSize;
 
 
             float CalculateMetaball(float2 metaballCenter, float2 uv){
@@ -51,7 +53,8 @@
                     blob += CalculateMetaball(blobInstanceArray[i], uv);
                 }
 
-                //return blob;
+                if(blob >= 1)
+                color.x = blob;
                 return color;
             }
 

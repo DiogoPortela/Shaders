@@ -1,0 +1,38 @@
+﻿#pragma kernel CSTextureRender
+#pragma kernel CSMarchingSquares
+
+RWTexture2D<float4> SmallTexture;
+RWStructuredBuffer<float2> blobInstanceArray;
+float arrayCount;
+float blobRadius;
+float textureSize;
+float meshSize;
+
+float Metaball(float2 uv, float2 pos){
+    return blobRadius / dot(uv - pos, uv - pos);
+}
+
+[numthreads(4, 4, 1)]
+void CSTextureRender (uint3 id : SV_DispatchThreadID)
+{
+    float2 uv = id / textureSize;
+    uv = uv * meshSize - float2(meshSize, meshSize) / 2;
+    float4 color = float4(0, 0, 0, 1);
+    float metaballs = 0;
+
+    for(int i = 0; i < arrayCount; i++)
+        metaballs += Metaball(uv, blobInstanceArray[i]);
+    if(metaballs >= 1)
+        color.x = metaballs;
+
+    SmallTexture[id.xy] = color;
+}
+
+
+
+RWStructuredBuffer<float> marchingData;
+
+[numthreads(8,8,1)]
+void CSMarchingSquares(uint3 id : SV_DISPATCHTHREADID){
+    
+}
