@@ -1,4 +1,4 @@
-﻿//#pragma kernel CSTextureRender
+//#pragma kernel CSTextureRender
 
 #pragma kernel CSCornerSamples
 #pragma kernel CSCellData
@@ -74,6 +74,7 @@ void CSCellData(uint3 id : SV_DISPATCHTHREADID)
     }
 
     currentPos = int2(id.x + 1, id.y);
+    SmallTexture[id.xy] = float4(currentPos, 0, 1);
     if(cornersData[GetCoords(currentPos)] >= 1){
         value += 1;
     }
@@ -92,5 +93,5 @@ void CSCellData(uint3 id : SV_DISPATCHTHREADID)
     //SmallTexture[id.xy] = float4(value / 16.0, 0, 0, 1);
 
     currentPos = int2(id.x, id.y);
-    SmallTexture[id.xy] = float4(cornersData[GetCoords(currentPos)], 0, 0, 1);
+    //SmallTexture[id.xy] = float4(cornersData[GetCoords(currentPos)], 0, 0, 1);
 }
