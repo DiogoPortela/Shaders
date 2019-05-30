@@ -52,7 +52,7 @@ public class BlobManager : MonoBehaviour
 
         cornersBuffer.GetData(corners);
         blobGenerator.SetBuffer(lastPass, "cornersData", cornersBuffer);
-        blobGenerator.Dispatch(lastPass, firstRenderTexture.width / 4, firstRenderTexture.height / 4, 1);
+        blobGenerator.Dispatch(lastPass, (firstRenderTexture.width - 1) / 4, (firstRenderTexture.height -1) / 4, 1);
 
         cornersBuffer.Release();
         cellsBuffer.Release();

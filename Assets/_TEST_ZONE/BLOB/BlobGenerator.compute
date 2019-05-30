@@ -2,6 +2,7 @@
 
 #pragma kernel CSCornerSamples
 #pragma kernel CSCellData
+#pragma kernel CSDrawOutLine
 
 /*[numthreads(4, 4, 1)]
 void CSTextureRender (uint3 id : SV_DispatchThreadID)
@@ -21,13 +22,27 @@ void CSTextureRender (uint3 id : SV_DispatchThreadID)
 
 RWTexture2D<float4> SmallTexture;
 RWStructuredBuffer<float2> blobInstanceArray;
-float arrayCount;
-float textureSize;
-float blobRadius;
-float meshSize;
-float arraySize;
+float textureSize;              //SIZE OF THE CORNERS ARRAY
+float blobInstanceArrayCount;   //NUMBER OF INSTANCES TO CALCULATES 
+float blobRadius;               //Radius of a blob
+float meshSize;                 //Scale of the rendering plane
 RWStructuredBuffer<float> cornersData;
 RWStructuredBuffer<int> cellsData;
+
+struct functionData{
+    float m;
+    float b;
+};
+
+functionData new_functionData (float m, float b){
+    functionData f;
+    f.m = m;
+    f.b = b;
+    return f;
+}
+RWStructuredBuffer<functionData> cellFunction;
+
+//----------------------------------------------------------------
 
 float Metaball(float2 uv, float2 pos){
     return blobRadius / dot(uv - pos, uv - pos);
@@ -40,19 +55,20 @@ void CSCornerSamples(uint3 id : SV_DISPATCHTHREADID)
     uv = uv * meshSize - float2(meshSize, meshSize) / 2;
     float metaballs = 0;
 
-    for(int i = 0; i < arrayCount; i++)
+    for(int i = 0; i < blobInstanceArrayCount; i++)
         metaballs += Metaball(uv, blobInstanceArray[i]);
 
     cornersData[id.x + textureSize * id.y] = metaballs;
 }
+//----------------------------------------------------------------
 
 bool CheckIfPossible(int2 index){
-    if(index.x > arraySize || index.y > arraySize)
+    if(index.x > textureSize || index.y > textureSize)
         return false;
     return true;
 }
 int GetCoords(int2 pos){
-    return pos.x + pos.y * arraySize;
+    return pos.x + pos.y * textureSize;
 }
 [numthreads(4,4,1)]
 void CSCellData(uint3 id : SV_DISPATCHTHREADID)
@@ -81,7 +97,133 @@ void CSCellData(uint3 id : SV_DISPATCHTHREADID)
         value += 2;
     }
 
-    cellsData[id.x + id.y * (arraySize - 1)] = value;
-
+    cellsData[id.x + id.y * (textureSize - 1)] = value;
     currentPos = int2(id.x, id.y);
+}
+//----------------------------------------------------------------
+functionData CalculateFunction(float2 point1, float2 point2, int2 coords){
+
+}
+
+
+[numthreads(4,4,1)]
+void CSCalculateFunctionData(uint3 id : SV_DISPATCHTHREADID){
+    int2 uvs = int2(id.x, id.y);
+    int cellValue = cellsData[GetCoords(uvs)];
+
+    functionData cellFunctionData = new_functionData(0, 0);
+    float result = 0;
+    if(cellValue == 1){
+        cellFunctionData = CalculateFunction(float2(0.0, 0.5), float2(0.5, 0.0), uvs);
+    }
+    else if(cellValue == 2){
+        cellFunctionData = CalculateFunction(float2(0.5, 0.0), float2(0.5, 1.0), uvs);
+    }
+    else if(cellValue == 3){
+        cellFunctionData = CalculateFunction(float2(0.0, 0.5), float2(1.0, 0.5), uvs);
+    }
+    else if(cellValue == 4){
+        cellFunctionData = CalculateFunction(float2(0, 0), float2( 0, 0), uvs);
+    }
+    else if(cellValue == 5){
+        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
+    }
+    else if(cellValue == 6){
+        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
+    }
+    else if(cellValue == 7){
+        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
+    }
+    else if(cellValue == 8){
+        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
+    }
+    else if(cellValue == 9){
+        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
+    }
+    else if(cellValue == 10){
+        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
+    }
+    else if(cellValue == 11){
+        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
+    }
+    else if(cellValue == 12){
+        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
+    }
+    else if(cellValue == 13){
+        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
+    }
+    else if(cellValue == 14){
+        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
+    }
+    else if(cellValue == 15){
+        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
+    }
+
+    cellFunction[GetCoords(uvs)] = cellFunctionData;
+}
+//----------------------------------------------------------------
+
+float plotHorizontal(float2 uv, float value){
+  return  smoothstep( value - 0.01, value, uv.y) -
+          smoothstep( value, value + 0.01, uv.y);
+}
+float plotVertical(float2 uv, float value){
+    return  smoothstep( value - 0.01, value, uv.x) -
+            smoothstep( value, value + 0.01, uv.x);
+}
+
+RWTexture2D<float4> Result;
+[numthreads(8,8,1)]
+void CSDrawOutLine(uint3 id : SV_DISPATCHTHREADID){
+    int2 cornerUV = int2(id.x / textureSize , id.y / textureSize);
+
+    int cellValue = cellsData[GetCoords(cornerUV)];
+
+    float result = 0;
+    if(cellValue == 1){
+
+    }
+    else if(cellValue == 2){
+
+    }
+    else if(cellValue == 3){
+
+    }
+    else if(cellValue == 4){
+
+    }
+    else if(cellValue == 5){
+
+    }
+    else if(cellValue == 6){
+
+    }
+    else if(cellValue == 7){
+
+    }
+    else if(cellValue == 8){
+
+    }
+    else if(cellValue == 9){
+
+    }
+    else if(cellValue == 10){
+
+    }
+    else if(cellValue == 11){
+
+    }
+    else if(cellValue == 12){
+
+    }
+    else if(cellValue == 13){
+
+    }
+    else if(cellValue == 14){
+
+    }
+    else if(cellValue == 15){
+
+    }
+    Result[id.xy] = float4(result, 0, 0, 1);
 }
