@@ -16,7 +16,7 @@ public class BlobManager : MonoBehaviour
     public float blobRadius;
     private int firstPass, lastPass;
 
-    private ComputeBuffer cornersBuffer, cellsBuffer;
+    private ComputeBuffer cornersBuffer, cellsBuffer, blobInstanceArrayBuffer;
     private float[] corners;
     private int[] cells;
 
@@ -29,13 +29,12 @@ public class BlobManager : MonoBehaviour
         firstPass =  blobGenerator.FindKernel("CSCornerSamples");
         lastPass =  blobGenerator.FindKernel("CSCellData");
 
-        firstRenderTexture = new RenderTexture(32, 32, 0, RenderTextureFormat.ARGB64);
+        firstRenderTexture = new RenderTexture(32, 32, 0, RenderTextureFormat.Default);
         firstRenderTexture.filterMode = FilterMode.Point;
         firstRenderTexture.enableRandomWrite = true;
         firstRenderTexture.Create();
         //blobGenerator.SetTexture(firstPass, "SmallTexture", firstRenderTexture);
         blobGenerator.SetFloat("textureSize", firstRenderTexture.width);
-        
         debugMaterial.SetTexture("_MainTex", firstRenderTexture);
         blobGenerator.SetTexture(firstPass, "SmallTexture", firstRenderTexture);
         blobGenerator.SetTexture(lastPass, "SmallTexture", firstRenderTexture);
@@ -54,11 +53,15 @@ public class BlobManager : MonoBehaviour
         cornersBuffer.GetData(corners);
         blobGenerator.SetBuffer(lastPass, "cornersData", cornersBuffer);
         blobGenerator.Dispatch(lastPass, firstRenderTexture.width / 4, firstRenderTexture.height / 4, 1);
+
+        cornersBuffer.Release();
+        cellsBuffer.Release();
+        blobInstanceArrayBuffer.Release();
     }
 
     private void SendPositionsToGPU(){
         blobGenerator.SetFloat("arrayCount", allBlobInstances.Count);
-        ComputeBuffer blobInstanceArrayBuffer = new ComputeBuffer(allBlobInstances.Count, sizeof(float) * 2);
+        blobInstanceArrayBuffer = new ComputeBuffer(allBlobInstances.Count, sizeof(float) * 2);
         List<Vector2> blobInstanceVectors = new List<Vector2>();
         foreach(Transform t in allBlobInstances){
             blobInstanceVectors.Add(new Vector2(t.localPosition.x, t.localPosition.z));
@@ -69,10 +72,11 @@ public class BlobManager : MonoBehaviour
     }
     private void GenerateCorners(){
         int blobImageSize = 32;
-        blobGenerator.SetFloat("arrayData", blobImageSize);
+        blobGenerator.SetFloat("arraySize", blobImageSize);
 
         corners = new float[blobImageSize * blobImageSize];
         cells = new int[(blobImageSize - 1) * (blobImageSize - 1)];
+
 
         cornersBuffer = new ComputeBuffer(corners.Length, sizeof(float));
         cellsBuffer = new ComputeBuffer(cells.Length, sizeof(int));

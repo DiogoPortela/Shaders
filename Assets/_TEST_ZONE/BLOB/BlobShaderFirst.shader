@@ -5,6 +5,7 @@
         //_MainTex ("Texture", 2D) = "white" {}
         _blobRadius ("Blob Radius", float) = 0.1
         _meshSize("MeshSize", float) = 1
+        _arraycount("nao mexer", float ) = 0
     }
     SubShader
     {
@@ -21,7 +22,7 @@
 
             //uniform sampler2D _MainTex;
             uniform StructuredBuffer<float2> blobInstanceArray;
-            uniform float _blobRadius, arrayCount, _meshSize;
+            uniform float _blobRadius, _arraycount, _meshSize;
 
 
             float CalculateMetaball(float2 metaballCenter, float2 uv){
@@ -49,7 +50,7 @@
                 float2 uv = i.uv * _meshSize - float2(_meshSize, _meshSize) / 2;
 
                 float blob = 0;
-                for(int i = 0; i < arrayCount; i++){
+                for(int i = 0; i < _arraycount; i++){
                     blob += CalculateMetaball(blobInstanceArray[i], uv);
                 }
 

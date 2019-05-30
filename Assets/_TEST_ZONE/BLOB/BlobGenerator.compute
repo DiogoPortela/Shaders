@@ -1,18 +1,7 @@
-//#pragma kernel CSTextureRender
+﻿//#pragma kernel CSTextureRender
 
 #pragma kernel CSCornerSamples
 #pragma kernel CSCellData
-
-RWTexture2D<float4> SmallTexture;
-RWStructuredBuffer<float2> blobInstanceArray;
-float arrayCount;
-float blobRadius;
-float textureSize;
-float meshSize;
-
-float Metaball(float2 uv, float2 pos){
-    return blobRadius / dot(uv - pos, uv - pos);
-}
 
 /*[numthreads(4, 4, 1)]
 void CSTextureRender (uint3 id : SV_DispatchThreadID)
@@ -30,10 +19,19 @@ void CSTextureRender (uint3 id : SV_DispatchThreadID)
     SmallTexture[id.xy] = color;
 }*/
 
-
+RWTexture2D<float4> SmallTexture;
+RWStructuredBuffer<float2> blobInstanceArray;
+float arrayCount;
+float textureSize;
+float blobRadius;
+float meshSize;
 float arraySize;
 RWStructuredBuffer<float> cornersData;
 RWStructuredBuffer<int> cellsData;
+
+float Metaball(float2 uv, float2 pos){
+    return blobRadius / dot(uv - pos, uv - pos);
+}
 
 [numthreads(4,4,1)]
 void CSCornerSamples(uint3 id : SV_DISPATCHTHREADID)
@@ -46,14 +44,7 @@ void CSCornerSamples(uint3 id : SV_DISPATCHTHREADID)
         metaballs += Metaball(uv, blobInstanceArray[i]);
 
     cornersData[id.x + textureSize * id.y] = metaballs;
-    //SmallTexture[id.xy] = float4(metaballs, 0, 0, 1);
 }
-
-
-
-
-
-
 
 bool CheckIfPossible(int2 index){
     if(index.x > arraySize || index.y > arraySize)
@@ -68,30 +59,29 @@ void CSCellData(uint3 id : SV_DISPATCHTHREADID)
 {
     int value = 0;
 
+    float4 st = float4(0,0,0,1
+    );
     int2 currentPos = int2(id.x, id.y);
-    if(cornersData[GetCoords(currentPos)] >= 1){
+    if(cornersData[GetCoords(currentPos)] >= 1.0){ 
         value += 8;
     }
 
     currentPos = int2(id.x + 1, id.y);
-    SmallTexture[id.xy] = float4(currentPos, 0, 1);
-    if(cornersData[GetCoords(currentPos)] >= 1){
+    if(CheckIfPossible(currentPos) && cornersData[GetCoords(currentPos)] >= 1){
         value += 1;
     }
 
     currentPos = int2(id.x, id.y + 1);
-    if(cornersData[GetCoords(currentPos)] >= 1){
+    if(CheckIfPossible(currentPos) && cornersData[GetCoords(currentPos)] >= 1){
         value += 4;
     }
 
     currentPos = int2(id.x + 1, id.y + 1);
-    if(cornersData[GetCoords(currentPos)] >= 1){
+    if(CheckIfPossible(currentPos) && cornersData[GetCoords(currentPos)] >= 1){
         value += 2;
     }
 
     cellsData[id.x + id.y * (arraySize - 1)] = value;
-    //SmallTexture[id.xy] = float4(value / 16.0, 0, 0, 1);
 
     currentPos = int2(id.x, id.y);
-    //SmallTexture[id.xy] = float4(cornersData[GetCoords(currentPos)], 0, 0, 1);
 }
