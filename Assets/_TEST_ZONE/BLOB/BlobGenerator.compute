@@ -2,8 +2,8 @@
 
 #pragma kernel CSCornerSamples
 #pragma kernel CSCellData
+#pragma kernel CSCalculateFunctionData
 #pragma kernel CSDrawOutLine
-
 /*[numthreads(4, 4, 1)]
 void CSTextureRender (uint3 id : SV_DispatchThreadID)
 {
@@ -49,8 +49,7 @@ float Metaball(float2 uv, float2 pos){
 }
 
 [numthreads(4,4,1)]
-void CSCornerSamples(uint3 id : SV_DISPATCHTHREADID)
-{
+void CSCornerSamples(uint3 id : SV_DISPATCHTHREADID){
     float2 uv = id / textureSize;
     uv = uv * meshSize - float2(meshSize, meshSize) / 2;
     float metaballs = 0;
@@ -58,6 +57,7 @@ void CSCornerSamples(uint3 id : SV_DISPATCHTHREADID)
     for(int i = 0; i < blobInstanceArrayCount; i++)
         metaballs += Metaball(uv, blobInstanceArray[i]);
 
+    SmallTexture[id.xy] = float4(metaballs, 0 , 0 ,1);
     cornersData[id.x + textureSize * id.y] = metaballs;
 }
 //----------------------------------------------------------------
@@ -67,103 +67,86 @@ bool CheckIfPossible(int2 index){
         return false;
     return true;
 }
-int GetCoords(int2 pos){
+int GetCornersCoords(int2 pos){
     return pos.x + pos.y * textureSize;
 }
+int GetCellCoords(int2 pos){
+    return pos.x + pos.y * (textureSize - 1);
+}
 [numthreads(4,4,1)]
-void CSCellData(uint3 id : SV_DISPATCHTHREADID)
-{
+void CSCellData(uint3 id : SV_DISPATCHTHREADID){
     int value = 0;
 
     float4 st = float4(0,0,0,1
     );
     int2 currentPos = int2(id.x, id.y);
-    if(cornersData[GetCoords(currentPos)] >= 1.0){ 
+    if(cornersData[GetCornersCoords(currentPos)] >= 1.0){ 
         value += 8;
     }
 
     currentPos = int2(id.x + 1, id.y);
-    if(CheckIfPossible(currentPos) && cornersData[GetCoords(currentPos)] >= 1){
+    if(CheckIfPossible(currentPos) && cornersData[GetCornersCoords(currentPos)] >= 1.0){
         value += 1;
     }
 
     currentPos = int2(id.x, id.y + 1);
-    if(CheckIfPossible(currentPos) && cornersData[GetCoords(currentPos)] >= 1){
+    if(CheckIfPossible(currentPos) && cornersData[GetCornersCoords(currentPos)] >= 1.0){
         value += 4;
     }
 
     currentPos = int2(id.x + 1, id.y + 1);
-    if(CheckIfPossible(currentPos) && cornersData[GetCoords(currentPos)] >= 1){
+    if(CheckIfPossible(currentPos) && cornersData[GetCornersCoords(currentPos)] >= 1.0){
         value += 2;
     }
 
-    cellsData[id.x + id.y * (textureSize - 1)] = value;
+    //SmallTexture[id.xy] = float4(value, 0, 0, 1);
+    //SmallTexture[id.xy] = float4(GetCoords(currentPos) / (32.0 * 32.0), 0, 0, 1);
+    //cellsData[id.x + id.y * (textureSize - 1)] = value;
+    cellsData[GetCellCoords(id.xy)] = value;
     currentPos = int2(id.x, id.y);
 }
 //----------------------------------------------------------------
 functionData CalculateFunction(float2 point1, float2 point2, int2 coords){
-
+    float m = (point1.y - point2.y) / (point1.x - point2.x);
+    float b = point1.y - (m * point1.x);
+    return new_functionData(m,b);
 }
-
-
 [numthreads(4,4,1)]
 void CSCalculateFunctionData(uint3 id : SV_DISPATCHTHREADID){
     int2 uvs = int2(id.x, id.y);
-    int cellValue = cellsData[GetCoords(uvs)];
+    int cellValue = cellsData[GetCellCoords(uvs)];
 
     functionData cellFunctionData = new_functionData(0, 0);
     float result = 0;
-    if(cellValue == 1){
+    if(cellValue == 1 || cellValue == 14){
         cellFunctionData = CalculateFunction(float2(0.0, 0.5), float2(0.5, 0.0), uvs);
     }
-    else if(cellValue == 2){
+    else if(cellValue == 2 || cellValue == 13){
         cellFunctionData = CalculateFunction(float2(0.5, 0.0), float2(0.5, 1.0), uvs);
     }
-    else if(cellValue == 3){
+    else if(cellValue == 3 || cellValue == 12){
         cellFunctionData = CalculateFunction(float2(0.0, 0.5), float2(1.0, 0.5), uvs);
     }
-    else if(cellValue == 4){
-        cellFunctionData = CalculateFunction(float2(0, 0), float2( 0, 0), uvs);
+    else if(cellValue == 4 || cellValue == 11){
+        cellFunctionData = CalculateFunction(float2(0.5, 1.0), float2(1.0, 0.5), uvs);
     }
-    else if(cellValue == 5){
-        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
-    }
-    else if(cellValue == 6){
-        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
-    }
-    else if(cellValue == 7){
-        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
-    }
-    else if(cellValue == 8){
-        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
-    }
-    else if(cellValue == 9){
-        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
-    }
-    else if(cellValue == 10){
-        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
-    }
-    else if(cellValue == 11){
-        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
-    }
-    else if(cellValue == 12){
-        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
-    }
-    else if(cellValue == 13){
-        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
-    }
-    else if(cellValue == 14){
-        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
-    }
-    else if(cellValue == 15){
-        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
+    else if(cellValue == 7 || cellValue == 8){
+        cellFunctionData = CalculateFunction(float2(0.0, 0.5), float2(0.5, 1.0), uvs);
     }
 
-    cellFunction[GetCoords(uvs)] = cellFunctionData;
+
+    /*else if(cellValue == 5 || cellValue == 10){
+        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
+    }
+    else if(cellValue == 6 || cellValue == 9){
+        cellFunctionData = CalculateFunction(float2( 0, 0), float2( 0, 0), uvs);
+    }*/
+
+    cellFunction[GetCellCoords(uvs)] = cellFunctionData;
 }
 //----------------------------------------------------------------
 
-float plotHorizontal(float2 uv, float value){
+float plotHorizontal(int2 uv, float value){
   return  smoothstep( value - 0.01, value, uv.y) -
           smoothstep( value, value + 0.01, uv.y);
 }
@@ -175,55 +158,19 @@ float plotVertical(float2 uv, float value){
 RWTexture2D<float4> Result;
 [numthreads(8,8,1)]
 void CSDrawOutLine(uint3 id : SV_DISPATCHTHREADID){
-    int2 cornerUV = int2(id.x / textureSize , id.y / textureSize);
+    int2 cornerUV = int2(id.x * 32 / 256, id.y * 32 / 256);
 
-    int cellValue = cellsData[GetCoords(cornerUV)];
+    int cellValue = cellsData[GetCellCoords(cornerUV)];
 
     float result = 0;
-    if(cellValue == 1){
+    
+    if(cellValue == 0 || cellValue == 15)
+        result = 1;
+    //if(cellValue != 5 && cellValue != 10 && cellValue != 6 && cellValue != 9){
+        //functionData f = cellFunction[GetCoords(cornerUV)];
+        //float value = f.m * (id.x + cornerUV.x) + f.b;
+        //result = plotHorizontal(id.xy, value + cornerUV.y);
+    //}
 
-    }
-    else if(cellValue == 2){
-
-    }
-    else if(cellValue == 3){
-
-    }
-    else if(cellValue == 4){
-
-    }
-    else if(cellValue == 5){
-
-    }
-    else if(cellValue == 6){
-
-    }
-    else if(cellValue == 7){
-
-    }
-    else if(cellValue == 8){
-
-    }
-    else if(cellValue == 9){
-
-    }
-    else if(cellValue == 10){
-
-    }
-    else if(cellValue == 11){
-
-    }
-    else if(cellValue == 12){
-
-    }
-    else if(cellValue == 13){
-
-    }
-    else if(cellValue == 14){
-
-    }
-    else if(cellValue == 15){
-
-    }
     Result[id.xy] = float4(result, 0, 0, 1);
 }
