@@ -62,9 +62,9 @@ public class BlobManager : MonoBehaviour
 
         SendPositionsToGPU();
         GenerateBuffers();
-        blobGenerator.Dispatch(firstPass, firstRenderTexture.width / 4, firstRenderTexture.height / 4, 1);
-        blobGenerator.Dispatch(secondPass, (firstRenderTexture.width - 1) / 4, (firstRenderTexture.height -1) / 4, 1);
-        blobGenerator.Dispatch(thirdPass, (firstRenderTexture.width - 1) / 4, (firstRenderTexture.height -1) / 4, 1);
+        blobGenerator.Dispatch(firstPass, (firstRenderTexture.width + 4) / 4, (firstRenderTexture.height + 4) / 4, 1);
+        blobGenerator.Dispatch(secondPass, firstRenderTexture.width / 4, firstRenderTexture.height / 4, 1);
+        blobGenerator.Dispatch(thirdPass, firstRenderTexture.width / 4, firstRenderTexture.height / 4, 1);
         blobGenerator.Dispatch(lastPass, (result.width ) / 8, (result.height) / 8, 1);
 
         cornersBuffer.Release();
@@ -87,8 +87,8 @@ public class BlobManager : MonoBehaviour
     private void GenerateBuffers(){
         int blobImageSize = 32;
 
-        corners = new float[blobImageSize * blobImageSize];
-        cells = new int[(blobImageSize - 1) * (blobImageSize - 1)];
+        corners = new float[(blobImageSize + 1) * (blobImageSize + 1)];
+        cells = new int[blobImageSize * blobImageSize];
 
         cornersBuffer = new ComputeBuffer(corners.Length, sizeof(float));
         cellsBuffer = new ComputeBuffer(cells.Length, sizeof(int));
