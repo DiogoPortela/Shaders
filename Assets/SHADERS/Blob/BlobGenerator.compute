@@ -125,13 +125,14 @@ void CSCalculateFunctionData(uint3 id : SV_DISPATCHTHREADID){
 }
 //----------------------------------------------------------------
 
+float lineThickness;
 float plotHorizontal(int2 uv, float value){
-  return  smoothstep( value - 0.02, value, uv.y) -
-          smoothstep( value, value + 0.02, uv.y);
+  return  smoothstep( value - lineThickness, value, uv.y) -
+          smoothstep( value, value + lineThickness, uv.y);
 }
 float plotVertical(float2 uv, float value){
-    return  smoothstep( value - 0.02, value, uv.x) -
-            smoothstep( value, value + 0.02, uv.x);
+    return  smoothstep( value - lineThickness, value, uv.x) -
+            smoothstep( value, value + lineThickness, uv.x);
 }
 
 
@@ -153,8 +154,17 @@ void CSDrawOutLine(uint3 id : SV_DISPATCHTHREADID){
     else if(cellValue == 6 || cellValue == 9){
         result = plotVertical(id.xy, 0.5 * cornerToPixel + cornerUV.x * cornerToPixel);
     }
-    else if (cellValue == 5 || cellValue == 10){
-        result = 0;
+    else if (cellValue == 5){
+        float value = (id.x - cornerUV.x * cornerToPixel) + (0.5 + cornerUV.y) * cornerToPixel;
+        result = plotHorizontal(id.xy, value);
+        value = (id.x - cornerUV.x * cornerToPixel) + (-0.5 + cornerUV.y) * cornerToPixel;
+        result += plotHorizontal(id.xy, value);
+    }
+    else if (cellValue == 10){
+        float value = -(id.x - cornerUV.x * cornerToPixel) + (0.5 + cornerUV.y) * cornerToPixel;
+        result = plotHorizontal(id.xy, value);
+        value = -(id.x - cornerUV.x * cornerToPixel) + (1.5 + cornerUV.y) * cornerToPixel;
+        result += plotHorizontal(id.xy, value);
     }
     else{
         functionData f = cellFunction[GetCellCoords(cornerUV)];
