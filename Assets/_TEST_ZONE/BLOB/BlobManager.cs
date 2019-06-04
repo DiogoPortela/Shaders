@@ -13,7 +13,9 @@ public class BlobManager : MonoBehaviour
     public ComputeShader blobGenerator;
     public Material debugMaterial;
     public Material debugMaterial2;
-    private RenderTexture firstRenderTexture;
+    public int initialSampleSize;
+    public int finalImageSize;
+    private RenderTexture debugRenderTexture;
     private RenderTexture result;
     public float blobRadius;
     private int firstPass, secondPass, thirdPass, lastPass;
@@ -33,25 +35,26 @@ public class BlobManager : MonoBehaviour
         thirdPass = blobGenerator.FindKernel("CSCalculateFunctionData");
         lastPass = blobGenerator.FindKernel("CSDrawOutLine");
 
-        firstRenderTexture = new RenderTexture(32, 32, 0, RenderTextureFormat.Default);
-        firstRenderTexture.filterMode = FilterMode.Point;
-        firstRenderTexture.enableRandomWrite = true;
-        firstRenderTexture.Create();
-        blobGenerator.SetFloat("textureSize", firstRenderTexture.width);
+        debugRenderTexture = new RenderTexture(initialSampleSize, initialSampleSize, 0, RenderTextureFormat.Default);
+        debugRenderTexture.filterMode = FilterMode.Point;
+        debugRenderTexture.enableRandomWrite = true;
+        debugRenderTexture.Create();
+        blobGenerator.SetFloat("textureSize", debugRenderTexture.width);
 
-        result = new RenderTexture(256, 256, 0, RenderTextureFormat.Default);
+        result = new RenderTexture(finalImageSize, finalImageSize, 0, RenderTextureFormat.Default);
         result.enableRandomWrite = true;
         result.Create();
         blobGenerator.SetTexture(lastPass, "Result", result);
 
-
-
         debugMaterial.SetTexture("_MainTex", result);
-        debugMaterial2.SetTexture("_MainTex", firstRenderTexture);
-        blobGenerator.SetTexture(firstPass, "SmallTexture", firstRenderTexture);
-        blobGenerator.SetTexture(secondPass, "SmallTexture", firstRenderTexture);
-        blobGenerator.SetTexture(thirdPass, "SmallTexture", firstRenderTexture);
-        blobGenerator.SetTexture(lastPass, "SmallTexture", firstRenderTexture);
+        debugMaterial2.SetTexture("_MainTex", debugRenderTexture);
+        blobGenerator.SetTexture(firstPass, "SmallTexture", debugRenderTexture);
+        blobGenerator.SetTexture(secondPass, "SmallTexture", debugRenderTexture);
+        blobGenerator.SetTexture(thirdPass, "SmallTexture", debugRenderTexture);
+        blobGenerator.SetTexture(lastPass, "SmallTexture", debugRenderTexture);
+
+        blobGenerator.SetFloat("pixelToCorner", (float)initialSampleSize / (float)finalImageSize);
+        blobGenerator.SetFloat("cornerToPixel", (float)finalImageSize / (float)initialSampleSize);
     }
 
     void Update()
@@ -62,10 +65,10 @@ public class BlobManager : MonoBehaviour
 
         SendPositionsToGPU();
         GenerateBuffers();
-        blobGenerator.Dispatch(firstPass, (firstRenderTexture.width + 4) / 4, (firstRenderTexture.height + 4) / 4, 1);
-        blobGenerator.Dispatch(secondPass, firstRenderTexture.width / 4, firstRenderTexture.height / 4, 1);
-        blobGenerator.Dispatch(thirdPass, firstRenderTexture.width / 4, firstRenderTexture.height / 4, 1);
-        blobGenerator.Dispatch(lastPass, (result.width ) / 8, (result.height) / 8, 1);
+        blobGenerator.Dispatch(firstPass, (initialSampleSize + 4) / 4, (initialSampleSize + 4) / 4, 1);
+        blobGenerator.Dispatch(secondPass, initialSampleSize / 4, initialSampleSize / 4, 1);
+        blobGenerator.Dispatch(thirdPass, initialSampleSize / 4,initialSampleSize / 4, 1);
+        blobGenerator.Dispatch(lastPass, finalImageSize / 8, finalImageSize / 8, 1);
 
         cornersBuffer.Release();
         cellsBuffer.Release();
@@ -85,10 +88,8 @@ public class BlobManager : MonoBehaviour
         blobGenerator.SetBuffer(firstPass, "blobInstanceArray", blobInstanceArrayBuffer);
     }
     private void GenerateBuffers(){
-        int blobImageSize = 32;
-
-        corners = new float[(blobImageSize + 1) * (blobImageSize + 1)];
-        cells = new int[blobImageSize * blobImageSize];
+        corners = new float[(initialSampleSize + 1) * (initialSampleSize + 1)];
+        cells = new int[initialSampleSize * initialSampleSize];
 
         cornersBuffer = new ComputeBuffer(corners.Length, sizeof(float));
         cellsBuffer = new ComputeBuffer(cells.Length, sizeof(int));
