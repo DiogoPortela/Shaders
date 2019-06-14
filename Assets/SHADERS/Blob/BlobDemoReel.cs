@@ -38,11 +38,14 @@ public class BlobDemoReel : MonoBehaviour
         for(int i = 0; i < createQuanitity; i++){
             var obj = Instantiate(template);
             obj.transform.SetParent(parent);
-            obj.transform.localPosition = new Vector3(Random.Range(-0.9f, 0.9f), 0.02f,  Random.Range(-0.9f, 0.9f));
+            obj.transform.localPosition = new Vector3(Random.Range(-1.9f, 1.9f), 0.02f,  Random.Range(-1.9f, 1.9f));
             obj.transform.localRotation = Quaternion.identity;
             obj.transform.localScale = Vector3.one * 0.02f;
-            data.Add(obj.transform);
             spawnedObjs.Add(obj);
+
+            //if(Random.Range(0, 100) > 75){
+            data.Add(obj.transform);
+            //}
         }
 
         manager.SetObjects(data);
